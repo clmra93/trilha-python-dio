@@ -6,3 +6,5 @@ print(contatos)  # {'guilherme@gmail.com': {'nome': 'Gui'}}
 contatos.update({"giovanna@gmail.com": {"nome": "Giovanna", "telefone": "3322-8181"}})
 # {'guilherme@gmail.com': {'nome': 'Gui'}, 'giovanna@gmail.com': {'nome': 'Giovanna', 'telefone': '3322-8181'}}
 print(contatos)
+
+# ele deixa atualizar o dicionário com outro dicionário

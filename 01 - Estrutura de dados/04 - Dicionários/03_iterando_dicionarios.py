@@ -7,8 +7,11 @@ contatos = {
 
 for chave in contatos:
     print(chave, contatos[chave])
+# Quando está iterando dicionário, passa linha a linha do dicionário, retornando a chave, no caso, a primeira string
+# Para acessar tudo, preciso colocar o nome do dicionário, nesse caso contatos, e a chave que quer acessar entre colchetes
 
 print("=" * 100)
 
 for chave, valor in contatos.items():
     print(chave, valor)
+# Aqui temos outra forma de obter o mesmo resultado
