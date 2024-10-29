@@ -1,3 +1,6 @@
+# __init__ É um método construtor, inicializador
+# __del__ É  um método destrutor
+
 class Cachorro:
     def __init__(self, nome, cor, acordado=True):
         print("Inicializando a classe...")
