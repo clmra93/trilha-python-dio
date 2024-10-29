@@ -29,9 +29,14 @@ class Caminhao(Veiculo):
 
 
 moto = Motocicleta("preta", "abc-1234", 2)
-carro = Carro("branco", "xde-0098", 4)
-caminhao = Caminhao("roxo", "gfd-8712", 8, True)
-
+moto.ligar_motor()
 print(moto)
+
+carro = Carro("branco", "xde-0098", 4)
+carro.ligar_motor()
 print(carro)
+
+caminhao = Caminhao("roxo", "gfd-8712", 8, True)
+caminhao.ligar_motor()
+caminhao.esta_carregado()
 print(caminhao)
