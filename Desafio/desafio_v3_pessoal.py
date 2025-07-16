@@ -1,7 +1,9 @@
 import textwrap
 from abc import ABC, abstractclassmethod, abstractproperty
 from datetime import datetime
+from pathlib import Path
 
+ROOT_PATH = Path(__file__).parent
 
 class ContasIterador:
     def __init__(self, contas):
@@ -25,7 +27,6 @@ class ContasIterador:
         finally:
             self._index += 1
 
-
 class Cliente:
     def __init__(self, endereco):
         self.endereco = endereco
@@ -41,7 +42,6 @@ class Cliente:
     def adicionar_conta(self, conta):
         self.contas.append(conta)
 
-
 class PessoaFisica(Cliente):
     def __init__(self, nome, data_nascimento, cpf, endereco):
         super().__init__(endereco)
@@ -49,6 +49,8 @@ class PessoaFisica(Cliente):
         self.data_nascimento = data_nascimento
         self.cpf = cpf
 
+    def __repr__(self) -> str:
+        return f'<{self.__class__.__name__}: ("{self.nome}", "{self.cpf}")>'
 
 class Conta:
     def __init__(self, numero, cliente):
@@ -109,12 +111,15 @@ class Conta:
 
         return True
 
-
 class ContaCorrente(Conta):
     def __init__(self, numero, cliente, limite=500, limite_saques=3):
         super().__init__(numero, cliente)
         self._limite = limite
         self._limite_saques = limite_saques
+
+    @classmethod
+    def nova_conta(cls, cliente, numero, limite, limite_saques):
+        return cls(numero, cliente, limite, limite_saques)
 
     def sacar(self, valor):
         numero_saques = len(
@@ -134,6 +139,10 @@ class ContaCorrente(Conta):
             return super().sacar(valor)
 
         return False
+    
+    def __repr__(self):
+        return f"<{self.__class__.__name__}: ('{self.agencia}', '{self.numero}', '{self.cliente.nome}')>"
+
 
     def __str__(self):
         return f"""\
@@ -141,7 +150,6 @@ class ContaCorrente(Conta):
             C/C:\t\t{self.numero}
             Titular:\t{self.cliente.nome}
         """
-
 
 class Historico:
     def __init__(self):
@@ -165,6 +173,14 @@ class Historico:
             if tipo_transacao is None or transacao["tipo"].lower() == tipo_transacao.lower():
                 yield transacao
 
+    def transacoes_do_dia(self):
+        data_atual = datetime.now().date()
+        transacoes = []
+        for transacao in self._transacoes:
+            data_transacao = datetime.strptime(transacao["data"], "%d-%m-%Y %H:%M:%S").date()
+            if data_atual == data_transacao:
+                transacoes.append(transacao)
+        return transacoes
 
 class Transacao(ABC):
     @property
@@ -175,7 +191,6 @@ class Transacao(ABC):
     @abstractclassmethod
     def registrar(self, conta):
         pass
-
 
 class Saque(Transacao):
     def __init__(self, valor):
@@ -191,7 +206,6 @@ class Saque(Transacao):
         if sucesso_transacao:
             conta.historico.adicionar_transacao(self)
 
-
 class Deposito(Transacao):
     def __init__(self, valor):
         self._valor = valor
@@ -206,34 +220,36 @@ class Deposito(Transacao):
         if sucesso_transacao:
             conta.historico.adicionar_transacao(self)
 
-
 def log_transacao(func):
     def envelope(*args, **kwargs):
         resultado = func(*args, **kwargs)
-        print(f"{datetime.now()}: {func.__name__.upper()}")
+        data_hora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        with open(ROOT_PATH / "log.txt", "a", encoding="utf-8") as arquivo:
+            arquivo.write(
+                f"[{data_hora}] Função '{func.__name__}' executada com argumentos {args} e {kwargs}. "
+                f"Retornou {resultado}\n"
+            )
         return resultado
 
     return envelope
 
-
 def menu():
     menu = """\n
     ================ MENU ================
-    [d]\tDepositar
-    [s]\tSacar
-    [e]\tExtrato
-    [nc]\tNova conta
-    [lc]\tListar contas
-    [nu]\tNovo usuário
-    [q]\tSair
+    [1]\tDepositar
+    [2]\tSacar
+    [3]\tExtrato
+    [4]\tNova conta
+    [5]\tListar contas
+    [6]\tNovo usuário
+    [0]\tSair
     => """
     return input(textwrap.dedent(menu))
-
 
 def filtrar_cliente(cpf, clientes):
     clientes_filtrados = [cliente for cliente in clientes if cliente.cpf == cpf]
     return clientes_filtrados[0] if clientes_filtrados else None
-
 
 def recuperar_conta_cliente(cliente):
     if not cliente.contas:
@@ -242,7 +258,6 @@ def recuperar_conta_cliente(cliente):
 
     # FIXME: não permite cliente escolher a conta
     return cliente.contas[0]
-
 
 @log_transacao
 def depositar(clientes):
@@ -262,7 +277,6 @@ def depositar(clientes):
 
     cliente.realizar_transacao(conta, transacao)
 
-
 @log_transacao
 def sacar(clientes):
     cpf = input("Informe o CPF do cliente: ")
@@ -280,7 +294,6 @@ def sacar(clientes):
         return
 
     cliente.realizar_transacao(conta, transacao)
-
 
 @log_transacao
 def exibir_extrato(clientes):
@@ -309,7 +322,6 @@ def exibir_extrato(clientes):
     print(f"\nSaldo:\n\tR$ {conta.saldo:.2f}")
     print("==========================================")
 
-
 @log_transacao
 def criar_cliente(clientes):
     cpf = input("Informe o CPF (somente número): ")
@@ -329,7 +341,6 @@ def criar_cliente(clientes):
 
     print("\n=== Cliente criado com sucesso! ===")
 
-
 @log_transacao
 def criar_conta(numero_conta, clientes, contas):
     cpf = input("Informe o CPF do cliente: ")
@@ -339,18 +350,16 @@ def criar_conta(numero_conta, clientes, contas):
         print("\n@@@ Cliente não encontrado, fluxo de criação de conta encerrado! @@@")
         return
 
-    conta = ContaCorrente.nova_conta(cliente=cliente, numero=numero_conta)
+    conta = ContaCorrente.nova_conta(cliente=cliente, numero=numero_conta, limite=500, limite_saques=50)
     contas.append(conta)
     cliente.contas.append(conta)
 
     print("\n=== Conta criada com sucesso! ===")
 
-
 def listar_contas(contas):
     for conta in ContasIterador(contas):
         print("=" * 100)
         print(textwrap.dedent(str(conta)))
-
 
 def main():
     clientes = []
@@ -359,30 +368,29 @@ def main():
     while True:
         opcao = menu()
 
-        if opcao == "d":
+        if opcao == "1":
             depositar(clientes)
 
-        elif opcao == "s":
+        elif opcao == "2":
             sacar(clientes)
 
-        elif opcao == "e":
+        elif opcao == "3":
             exibir_extrato(clientes)
-
-        elif opcao == "nu":
-            criar_cliente(clientes)
-
-        elif opcao == "nc":
+        
+        elif opcao == "4":
             numero_conta = len(contas) + 1
             criar_conta(numero_conta, clientes, contas)
-
-        elif opcao == "lc":
+        
+        elif opcao == "5":
             listar_contas(contas)
 
-        elif opcao == "q":
+        elif opcao == "6":
+            criar_cliente(clientes)
+
+        elif opcao == "0":
             break
 
         else:
-            print("\n@@@ Operação inválida, por favor selecione novamente a operação desejada. @@@")
-
+            print("\n@@@ Operação inválida, selecione novamente a operação desejada. @@@")
 
 main()
