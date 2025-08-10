@@ -1,30 +1,22 @@
-import os
-import sys
+import sqlite3
+from pathlib import Path
 
-print(os)
-print(sys)
+ROOT_PATH = Path(__file__).parent
 
-a = "ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss"
-b = "abc"
+conn = sqlite3.connect(ROOT_PATH / "meu_banco.sqlite")
+cursor = conn.cursor()
+cursor.row_factory = sqlite3.Row
 
-frutas = [
-    "pera",
-    "maça",
-    "laranja",
-    "uva",
-    "melão",
-    "morango",
-    "abacate",
-    "banana",
-    "carambola",
-    "pessego",
-    "tamara",
-    "melancia",
-]
+id_cliente = input('Informe o id do cliente: ')
+cursor.execute(f'SELECT * FROM clientes WHERE id={id_cliente}')
+cliente = cursor.fetchone()
+print(dict(cliente))
 
-carros = [
-    "ferrari",
-    "brasilia",
-    "gol",
-    "up",
-]
+# # Evite isso
+# id = 1
+# cursor.execute('SELECT * FROM minha_tabela WHERE id = ' + str(id))
+
+# # Faça isto:
+# id = 1
+# cursor.execute('SELECT * FROM minha_tabela WHERE id = ?', (id,))
+
